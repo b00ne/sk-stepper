@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SK Stepper</title>
+<style>
+:root{--bg:#f6f7f9;--fg:#1d2430;--mut:#6b7686;--bd:#b7c0cc;--hot:#e8eef7;--pan:#fff;--acc:#1f5fbf;
+--gap:3px;--twin:#ffe9a8;--twinbd:#d9a400;--nfc:#2e7d32;--nfbg:#e3f3e6;--hc:#a86a00;--hbg:#fbf0d9;--k0:#c62828;--k1:#2e7d32;--k2:#a86a00;--k3:#1565c0;--k4:#8e24aa;--k5:#00838f}
+@media (prefers-color-scheme:dark){:root{--bg:#14181f;--fg:#e3e8ef;--mut:#8a95a6;--bd:#4a5566;--hot:#232c3a;--pan:#1b212b;--acc:#6aa5ff;
+--twin:#4a3d12;--twinbd:#e0b53a;--nfc:#6fd37a;--nfbg:#1b3022;--hc:#f0b24a;--hbg:#33291a;--k0:#ff6b6b;--k1:#6fd37a;--k2:#f0b24a;--k3:#6db3ff;--k4:#d38cf0;--k5:#4fd6e0}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.4 system-ui,sans-serif}
+header{position:sticky;top:0;background:var(--pan);border-bottom:1px solid var(--bd);padding:10px 14px;z-index:5}
+.bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+#inp{flex:1 1 320px;font:16px ui-monospace,Consolas,monospace;padding:6px 8px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--fg)}
+button{font:inherit;padding:5px 10px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--fg);cursor:pointer}
+button:hover{border-color:var(--acc)} button.main{background:var(--acc);color:#fff;border-color:var(--acc)}
+label{color:var(--mut);font-size:13px;display:flex;gap:4px;align-items:center}
+#stat{margin-top:6px;font-size:13px;color:var(--mut)} #stat.err{color:var(--k0)}
+#hist{padding:10px 14px 100px}
+.row{display:grid;grid-template-columns:150px 1fr;gap:10px;padding:5px 0;border-bottom:1px dashed var(--bd)}
+.g{font-size:12px;color:var(--mut);padding-top:3px}
+.t{font:17px ui-monospace,Consolas,monospace;line-height:calc(1.7em + 2*var(--gap)*var(--H,0));overflow-wrap:anywhere}
+.box{display:inline;border:1px solid var(--bd);border-radius:8px;padding:calc(var(--gap)*var(--h,1) + 1px) 3px calc(var(--gap)*var(--h,1) + 3px);margin:0 1px}
+.box.hot{background:var(--hot);border-color:var(--acc)}
+.p{font-size:0}
+.rh{font-weight:900}
+.live .rh{cursor:pointer}
+.live .rh:hover{text-decoration:underline}
+.rdx{border-bottom:2px solid var(--acc);padding-bottom:calc(var(--gap)*(var(--h,1) - 1))}
+.row.nf{background:var(--nfbg);border-left:5px solid var(--nfc);padding-left:8px}
+.row.hnf{background:var(--hbg);border-left:5px solid var(--hc);padding-left:8px}
+.badge{display:block;margin-top:2px}.nf .badge{color:var(--nfc)}.hnf .badge{color:var(--hc)}
+#stat.nf{color:var(--nfc);font-weight:700}
+#gap{width:56px}
+main{display:flex;align-items:flex-start}#hist{flex:1;min-width:0}
+#mac{width:320px;flex:none;position:sticky;top:104px;max-height:calc(100vh - 116px);overflow:auto;background:var(--pan);border:1px solid var(--bd);border-radius:8px;padding:10px;margin:10px 14px 0 0}
+#mac h3{margin:0 0 6px;font-size:14px}#mdef{flex:1;min-width:0;font:14px ui-monospace,Consolas,monospace;padding:4px 6px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--fg)}
+#mtxt{width:100%;margin:6px 0;font:13px ui-monospace,Consolas,monospace;background:var(--bg);color:var(--fg);border:1px solid var(--bd);border-radius:6px}
+.mrow{display:flex;gap:6px;align-items:baseline;border-bottom:1px dashed var(--bd);padding:3px 0}.mrow .t{flex:1;min-width:0;font-size:15px}
+.hint{font-size:12px;color:var(--mut)}
+.twin,.box.twin{background:var(--twin);outline:2px solid var(--twinbd);border-radius:6px}
+#helpb{margin-left:auto}
+#help{max-width:660px;width:92vw;max-height:84vh;overflow:auto;background:var(--pan);color:var(--fg);border:1px solid var(--bd);border-radius:10px;padding:14px 18px;font-size:14px}
+#help::backdrop{background:#0006}#help h2{margin:0 0 4px;font-size:18px}#help h4{margin:12px 0 3px;font-size:14px}
+#help ul{margin:2px 0;padding-left:20px}#help li{margin:2px 0}#help code{font:13px ui-monospace,Consolas,monospace;background:var(--bg);padding:0 3px;border-radius:4px}
+.mac sub{font-size:.65em;line-height:0}
+.mac{background:var(--hot);border-radius:4px;padding:0 3px;font-weight:700}
+.menu{position:fixed;z-index:20;background:var(--pan);border:1px solid var(--bd);border-radius:8px;padding:8px;box-shadow:0 4px 16px #0004;display:flex;gap:6px;flex-direction:column;max-width:260px;font-size:13px;word-break:break-all}
+.menu input{width:3em;font:16px ui-monospace,monospace}.menu[hidden]{display:none}
+.hot>.c0,.hot>.rdx>.c0{color:var(--k0)}.hot>.c1,.hot>.rdx>.c1{color:var(--k1)}.hot>.c2,.hot>.rdx>.c2{color:var(--k2)}
+.hot>.c3,.hot>.rdx>.c3{color:var(--k3)}.hot>.c4,.hot>.rdx>.c4{color:var(--k4)}.hot>.c5,.hot>.rdx>.c5{color:var(--k5)}
+.big{color:var(--mut)}
+</style></head><body>
+<header>
+<div class="bar">
+<input id="inp" value="S(SS)SSS" spellcheck="false" aria-label="Term">
+<button id="load" class="main">Load</button>
+<button id="step">Step (Enter)</button><button id="s10">×10</button><button id="s100">×100</button>
+<button id="run">Run to NF</button><button id="clean">Cleanup</button><button id="undo">Undo</button>
+<label><input type="checkbox" id="auto"> cleanup after each step</label>
+<label><input type="checkbox" id="fold" checked> show macros</label>
+<label>outline gap <input type="number" id="gap" min="0" max="12" value="3"> px</label>
+<button id="helpb">Help</button>
+</div>
+<div id="stat"></div>
+</header>
+<main><div id="hist"></div>
+<aside id="mac"><h3>Macros</h3>
+<div class="bar"><input id="mdef" placeholder="V = SSK" spellcheck="false"><button id="madd">Define</button></div>
+<div id="mlist"></div>
+<textarea id="mtxt" rows="5" spellcheck="false"></textarea>
+<div class="bar"><button id="mapply">Import</button><span class="hint">edit the lines, then Import (see Help)</span></div>
+</aside></main>
+
+<dialog id="help">
+<h2>SK Stepper</h2>
+<p>A local, offline tool for hand-analysing S/K terms one reduction at a time. By default, it uses leftmost-outermost reduction (normal-order reduction). It follows one term at a time, with unlimited history. Loading a new term replaces the history.</p>
+<h4>Terms</h4>
+<ul><li><code>S</code>, <code>K</code> are combinators. Lowercase letters and digits are inert atoms. Capital letters (other than S, K) are macros or families. Notation is left-associative, e.g. <code>S(KS)K</code>, or prefix-application form where <code>.</code> = application, e.g. <code>..SKK</code>.</li></ul>
+<h4>Reducing</h4>
+<ul><li><b>Step</b> (or Enter when no input is focused) does one leftmost-outermost step. <b>×10</b>, <b>×100</b>, and <b>Run to NF</b> (up to 5000 steps) repeat it.</li>
+<li><b>Click a bold redex head</b> in the latest row to contract that redex instead. It counts as a normal-order step only if it is the leftmost-outermost one. Otherwise it counts as an "other contraction".</li>
+<li><b>Undo</b> removes the latest row. Each row is labelled with what produced it.</li>
+<li>The underline marks the redex contracted to produce the next row (in the latest row, the one a normal-order step would contract).</li></ul>
+<h4>Cleanup (button, or the "cleanup after each step" checkbox)</h4>
+<p>Applies these rewrites anywhere in the term, repeatedly, until none apply:</p>
+<ul><li><code>K x y → x</code></li><li><code>S K x y → y</code></li><li><code>S (K x) y z → x (y z)</code></li><li><code>S x (K y) z → x z y</code></li></ul>
+<p>Each is one or two ordinary reductions that duplicate nothing and shrink the term, so cleanup never changes whether a term has a normal form or what it is. It is shown as one row ("cleanup ×n") and counted under "other contractions", never as normal-order steps.</p>
+<h4>Display</h4>
+<ul><li>Each application spine sits in a rounded outline. Hovering colours the innermost outline's head and arguments by role relative to that outline's own head. Parentheses are hidden but are copied with the text. <b>Outline gap</b> sets the spacing between nested outlines.</li>
+<li>Bold heads are redexes (S with 3+ arguments, K with 2+). A green row is a normal form. An amber row is where head normal form was first reached.</li>
+<li>Rows over 10,000 leaves are shown as folded text, with no outlines.</li></ul>
+<h4>Macros</h4>
+<ul><li>Define with <code>V = SSK</code> in the panel, or right-click an outline → <b>Add as macro</b>. Right-click a macro to remove it. Names are single capitals other than S, K. A macro needs at least 2 leaves, and two macros cannot be the same term.</li>
+<li>Macros are only a display layer: history rows keep the full terms, and the whole history is re-rendered when macros change. A redex entirely inside a macro is not drawn as a redex. <b>show macros</b> turns them off.</li>
+<li>The text box lists all definitions as <code>N = term</code>. Edit it and press <b>Import</b> to replace them all. Lines starting with <code>//</code> are ignored. Copy it to save a set.</li></ul>
+<h4>Inductive families</h4>
+<ul><li><code>M* = base ; ctx</code> defines M₀ = base and Mₙ₊₁ = ctx with <code>#</code> replaced by Mₙ. <code>#</code> may appear several times, and all slots must then hold the same term. Example: <code>M* = DD ; S#(D(S#))</code>. A context is always required.</li>
+<li>Right-click an outline → <b>Create inductive family</b> pre-fills the definition.</li></ul>
+<h4>Right-click menus</h4>
+<ul><li>Outline: add as macro, start a family, <b>Analyze this term</b> (loads it as a new start row). Macro or family atom: remove, or analyze. Text-only row: analyze.</li></ul>
+<p style="text-align:right"><button id="helpx" autofocus>Close</button></p>
+</dialog>
+<script id="engine">
+const L=a=>({a}),A=(l,r)=>({l,r}),isL=t=>t.a!==undefined,is=(t,c)=>isL(t)&&t.a===c;
+const ATOM=/[a-z0-9#SK]/;
+function parse(s,mac){
+  s=s.replace(/\s+/g,'');let i=0;
+  const atom=c=>{if(ATOM.test(c))return L(c);const f=mac&&mac.fam&&mac.fam.get(c);
+    if(f){const re=/_(\d+)/y;re.lastIndex=i;const m=re.exec(s);
+      if(!m)throw Error('family '+c+' needs a subscript, e.g. '+c+'_2');i+=m[0].length;return inst(f,+m[1])}
+    if(mac&&mac.has(c))return mac.get(c);
+    throw Error(/[A-Z]/.test(c)?'undefined macro '+c:'bad character '+c)};
+  if(s.includes('.')){
+    const d=()=>{const c=s[i++];if(c===undefined)throw Error('unexpected end');
+      if(c==='.'){const l=d(),r=d();return A(l,r)}return atom(c)};
+    const t=d();if(i!==s.length)throw Error('trailing characters');return t}
+  const seq=()=>{let acc=null;
+    while(i<s.length&&s[i]!==')'){let x;
+      if(s[i]==='('){i++;x=seq();if(s[i]!==')')throw Error("missing ')'");i++}
+      else x=atom(s[i++]);
+      acc=acc?A(acc,x):x}
+    if(!acc)throw Error('empty expression');return acc};
+  const t=seq();if(i<s.length)throw Error("unbalanced ')'");return t}
+// structural ids: equal trees get equal ids (used to detect macro occurrences)
+const idc=new WeakMap(),itab=new Map();let nid=0;
+function tid(t){if(isL(t))return t.a;let v=idc.get(t);
+  if(v===undefined){const k=tid(t.l)+'|'+tid(t.r);v=itab.get(k);if(v===undefined){v='#'+(nid++);itab.set(k,v)}idc.set(t,v)}
+  return v}
+// inductive families: A_0 = base, A_{n+1} = ctx[A_n] (ctx has one or more '#' holes, all filled with the same term)
+function subst(p,t){return isL(p)?(p.a==='#'?t:p):A(subst(p.l,t),subst(p.r,t))}
+function inst(f,n){if(n>3000)throw Error('subscript too large');const c=f.cache;if(!c.length)c.push(f.base);
+  while(c.length<=n)c.push(subst(f.ctx,c[c.length-1]));return c[n]}
+const holeCount=p=>isL(p)?(p.a==='#'?1:0):holeCount(p.l)+holeCount(p.r);
+function ctxMatch(p,t){let r;const go=(p,t)=>{
+    if(isL(p)){if(p.a==='#'){if(r===undefined){r=t;return true}return tid(r)===tid(t)}return isL(t)&&t.a===p.a}
+    return !isL(t)&&go(p.l,t.l)&&go(p.r,t.r)};return go(p,t)?r:undefined}
+function famMatch(f,t){const b=tid(f.base);let c=0;
+  for(;;){if(tid(t)===b)return c;const x=ctxMatch(f.ctx,t);if(x===undefined)return null;t=x;c++}}
+function spine(t){const args=[];while(!isL(t)){args.push(t.r);t=t.l}args.reverse();return{h:t,args}}
+const need=h=>h.a==='S'?3:h.a==='K'?2:Infinity;
+const szc=new WeakMap();
+function size(t){if(isL(t))return 1;let v=szc.get(t);if(v===undefined){v=size(t.l)+size(t.r);szc.set(t,v)}return v}
+function str(t,top=true){if(isL(t))return t.a;const{h,args}=spine(t);
+  let s=h.a+args.map(a=>isL(a)?a.a:'('+str(a,false)+')').join('');return s}
+const strCap=(t,n=200)=>size(t)>n?'['+size(t)+' leaves]':str(t);
+// path = string of 'l'/'r' from the root
+function findLO(t,p=''){
+  if(isL(t))return null; const{h,args}=spine(t),n=need(h),k=args.length;
+  if(k>=n)return p+'l'.repeat(k-n);
+  for(let i=0;i<k;i++){const r=findLO(args[i],p+'l'.repeat(k-1-i)+'r');if(r!==null)return r}
+  return null}
+function get(t,p){for(const c of p)t=c==='l'?t.l:t.r;return t}
+function setAt(t,p,n){if(!p)return n;return p[0]==='l'?A(setAt(t.l,p.slice(1),n),t.r):A(t.l,setAt(t.r,p.slice(1),n))}
+function contractAt(t,p){
+  const{h,args}=spine(get(t,p)); let n;
+  if(h.a==='S')n=A(A(args[0],args[2]),A(args[1],args[2])); else n=args[0];
+  return setAt(t,p,n)}
+// greedy rules (each strictly shrinks the term): Kxy->x, SKxy->y, S(Kx)yz->x(yz), Sx(Ky)z->xzy
+function rw(t){
+  if(isL(t))return null; const l=t.l; if(isL(l))return null; const ll=l.l;
+  if(is(ll,'K'))return l.r;
+  if(isL(ll))return null;
+  if(!is(ll.l,'S'))return null;
+  const a=ll.r,b=l.r,c=t.r;
+  if(is(a,'K'))return c;
+  if(!isL(a)&&is(a.l,'K'))return A(a.r,A(b,c));
+  if(!isL(b)&&is(b.l,'K'))return A(A(a,c),b.r);
+  return null}
+function cleanup(t){let n=0;
+  const f=t=>{if(isL(t))return t;const l=f(t.l),r=f(t.r),m=(l===t.l&&r===t.r)?t:A(l,r),x=rw(m);
+    if(x){n++;return f(x)}return m};
+  return{t:f(t),n}}
+</script>
+
+<script>
+const $=id=>document.getElementById(id),hist=$('hist'),stat=$('stat');
+let rows=[],els=[];
+const el=(tag,cls,txt)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(txt!==undefined)e.textContent=txt;return e};
+const last=()=>rows[rows.length-1];
+function isHd(t){const{h,args}=spine(t);return args.length<need(h)}
+const newMap=()=>{const m=new Map();m.fam=new Map();return m};
+let fold=true,skip=null,byId=new Map(),mmap=newMap(),macros=[],fams=[];
+const famOf=n=>fams.find(f=>f.name===n);
+const macOf=t=>{if(!fold)return null;
+  if(byId.size){const n=byId.get(tid(t));if(n&&n!==skip)return n}
+  for(const f of fams){if(f.name===skip)continue;const c=famMatch(f,t);if(c!==null)return f.name+'_'+c}
+  return null};
+function macAtom(key){const u=key.indexOf('_'),nm=u<0?key:key[0],e=el('span','atom mac',nm);e.dataset.name=nm;let val;
+  if(u>=0){const n=+key.slice(2);e.dataset.sub=n;e.append(el('span','p','_'),el('sub','',n));val=inst(famOf(nm),n)}
+  else val=mmap.get(nm);
+  e.title=key+' = '+strCap(val);e._h=0;return e}
+// text form of a term with macros/families folded; parses back when the same macros exist. Stops early past `cap` chars.
+function strFold(t,cap=Infinity){let out='',over=false;
+  const emit=x=>{if(out.length>cap){over=true;return}out+=x};
+  const arg=a=>{if(over)return;if(isL(a)){emit(a.a);return}
+    const k=macOf(a);if(k)emit(k);else{emit('(');body(a);emit(')')}};
+  const body=t=>{const{h,args}=spine(t),k=args.length;let j=0,nm=null;
+    if(fold){let nd=t.l;for(let q=k-1;q>=1;q--,nd=nd.l){const m=macOf(nd);if(m){j=q;nm=m;break}}}
+    emit(nm||h.a);for(let g=j;g<k&&!over;g++)arg(args[g])};
+  if(isL(t))out=t.a;else{const w=macOf(t);if(w)out=w;else body(t)}
+  return over?out+' …':out}
+function render(t,path,top,mark){
+  if(isL(t)){const e=el('span','atom',t.a);e._h=0;return e}
+  const whole=macOf(t);if(whole)return macAtom(whole);
+  const{h,args}=spine(t),k=args.length,n=need(h),box=el('span','box');box.dataset.bp=path;
+  let j=0,nm=null;   // j = number of leading args swallowed by a folded macro prefix
+  if(fold&&(byId.size||fams.length)){let nd=t.l;for(let q=k-1;q>=1;q--,nd=nd.l){const m=macOf(nd);if(m){j=q;nm=m;break}}}
+  const he=nm?macAtom(nm):el('span','atom',h.a);he.classList.add('c0');he.dataset.head='1';let rdx=false;
+  if(k>=n&&(!nm||j<=n)){he.classList.add('rh');const rp=path+'l'.repeat(k-n);he.dataset.p=rp;rdx=rp===mark}
+  const kids=[];
+  for(let g=j;g<k;g++){const c=render(args[g],path+'l'.repeat(k-1-g)+'r',false,mark);c.classList.add('c'+((g-j+1)%6));c.dataset.g=g;kids.push(c)}
+  const hh=1+Math.max(0,...kids.map(c=>c._h));box._h=hh;box.style.setProperty('--h',hh);box.dataset.k=k;box.dataset.j=j;
+  if(!top)box.append(el('span','p','('));
+  if(rdx){const w=el('span','rdx');w.append(he,...kids.slice(0,n-j));box.append(w,...kids.slice(n-j))}
+  else box.append(he,...kids);
+  if(!top)box.append(el('span','p',')'));
+  return box}
+function drawRow(i){
+  const r=rows[i],isLast=i===rows.length-1,nf=findLO(r.t)===null;
+  const row=el('div','row'+(isLast?' live':'')+(nf?' nf':r.hnf?' hnf':''));
+  const g=el('div','g','#'+i+'  '+r.kind);
+  if(nf)g.append(el('b','badge','normal form'));else if(r.hnf)g.append(el('b','badge','head normal form reached'));
+  row.append(g);
+  const t=el('div','t');
+  if(size(r.t)>10000){t.append(el('span','big','['+size(r.t)+' leaves, shown as text] '+strFold(r.t,3000)))}
+  else{const e=render(r.t,'',true,r.used??(isLast?findLO(r.t):null));t.style.setProperty('--H',e._h||0);t.append(e)}
+  row.append(t);
+  if(els[i])els[i].replaceWith(row);else hist.append(row);
+  els[i]=row}
+function status(msg,err){
+  const r=last(),nf=findLO(r.t)===null;
+  stat.className=err?'err':nf?'nf':'';
+  stat.textContent=msg||`${size(r.t)} leaves · normal-order steps: ${r.no} · other contractions: ${r.ot}`+(nf?' · NORMAL FORM':r.isH?' · head normal form':'')}
+function push(t,kind,no,ot,used=null){
+  const p=rows.length-1;rows[p].used=used;
+  const isH=isHd(t);
+  rows.push({t,kind,no:last().no+no,ot:last().ot+ot,isH,hnf:isH&&!rows.some(r=>r.isH),used:null});
+  drawRow(p);drawRow(rows.length-1);window.scrollTo(0,document.body.scrollHeight);status()}
+function doCleanup(auto){
+  const c=cleanup(last().t);
+  if(c.n>0){push(c.t,'cleanup ×'+c.n,0,c.n,null);return true}
+  if(!auto)status('Nothing to clean up.');return false}
+function stepNO(){
+  const p=findLO(last().t);
+  if(p===null){status('Normal form reached: '+size(last().t)+' leaves.');return false}
+  push(contractAt(last().t,p),'normal order',1,0,p);
+  if($('auto').checked)doCleanup(true);return true}
+function load(){
+  try{const t=parse($('inp').value,mmap),h=isHd(t);
+    hist.textContent='';els=[];rows=[{t,kind:'start',no:0,ot:0,isH:h,hnf:h,used:null}];drawRow(0);status()}
+  catch(e){status('Parse error: '+e.message,true)}}
+function many(n){let k=0;while(k<n&&stepNO())k++}
+$('load').onclick=load;$('step').onclick=()=>stepNO();
+$('s10').onclick=()=>many(10);$('s100').onclick=()=>many(100);
+$('run').onclick=()=>many(5000);$('clean').onclick=()=>doCleanup(false);
+$('undo').onclick=()=>{if(rows.length>1){rows.pop();els.pop().remove();last().used=null;drawRow(rows.length-1);status()}};
+$('gap').oninput=e=>document.documentElement.style.setProperty('--gap',(Math.max(0,+e.target.value||0))+'px');
+$('inp').addEventListener('keydown',e=>{if(e.key==='Enter')load()});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.activeElement.tagName!=='INPUT'&&document.activeElement.tagName!=='BUTTON'){e.preventDefault();stepNO()}});
+// click a bold redex head in the live row to contract that redex (counts as normal order if it is the leftmost-outermost one)
+hist.addEventListener('click',e=>{
+  const h=e.target.closest('.rh');if(!h||!h.closest('.live'))return;
+  const p=h.dataset.p,isNO=p===findLO(last().t);
+  push(contractAt(last().t,p),isNO?'normal order':'redex click',isNO?1:0,isNO?0:1,p);
+  if($('auto').checked)doCleanup(true)});
+// hover: colour the innermost box under the cursor by role relative to its own head
+let hot=null;
+hist.addEventListener('mouseover',e=>{const b=e.target.closest('.box');
+  if(b!==hot){if(hot)hot.classList.remove('hot');hot=b;if(b)b.classList.add('hot');updateTwins()}});
+hist.addEventListener('mouseleave',()=>{if(hot)hot.classList.remove('hot');hot=null;updateTwins()});
+// Shift + hover: highlight every identical subterm in the hovered row (preview of what a macro would fold)
+let shift=false,twins=[],twinMsg=false;
+function updateTwins(){
+  twins.forEach(e=>e.classList.remove('twin'));twins=[];
+  const row=shift&&hot&&hot.isConnected?hot.closest('.row'):null,i=row?els.indexOf(row):-1;
+  if(i<0){if(twinMsg){twinMsg=false;status()}return}
+  const root=rows[i].t,target=tid(get(root,hot.dataset.bp)),occ=[];
+  (function visit(t,p,top){if(isL(t))return;if(tid(t)===target){occ.push([p,top]);return}visit(t.l,p+'l',false);visit(t.r,p+'r',true)})(root,'',true);
+  let n=0;const mark=e=>{e.classList.add('twin');twins.push(e)};
+  for(const[p,top]of occ){
+    if(top){const b=row.querySelector('.box[data-bp="'+p+'"]');if(b){mark(b);n++}}
+    else{const d=p.length-p.replace(/l+$/,'').length,b=row.querySelector('.box[data-bp="'+p.slice(0,p.length-d)+'"]');
+      if(!b)continue;const q=+b.dataset.k-d;if(q<+b.dataset.j)continue;
+      const hd=b.querySelector(':scope>[data-head],:scope>.rdx>[data-head]');if(hd)mark(hd);
+      b.querySelectorAll(':scope>[data-g],:scope>.rdx>[data-g]').forEach(e=>{if(+e.dataset.g<q)mark(e)});n++}}
+  twinMsg=true;stat.className='';stat.textContent=n+' occurrence'+(n===1?'':'s')+' of this term in row #'+i+' (Shift held)'}
+document.addEventListener('keydown',e=>{if(e.key==='Shift'&&!shift){shift=true;updateTwins()}});
+document.addEventListener('keyup',e=>{if(e.key==='Shift'){shift=false;updateTwins()}});
+window.addEventListener('blur',()=>{shift=false;updateTwins()});
+// ---------------- macros: stored as expanded S/K/atom trees; folding happens only at render time
+const NAMEOK=n=>/^[A-Z]$/.test(n)&&n!=='S'&&n!=='K';
+const nextName=()=>{for(let c=65;c<91;c++){const n=String.fromCharCode(c);if(NAMEOK(n)&&!mmap.has(n)&&!mmap.fam.has(n))return n}return''};
+function setMacro(name,tree,list=macros,fl=fams){
+  if(!NAMEOK(name))return 'Names are single capital letters other than S and K.';
+  if(fl.some(f=>f.name===name))return name+' is already a family.';
+  if(size(tree)<2)return 'A macro needs at least 2 leaves.';
+  const id=tid(tree),o=list.find(m=>m.name!==name&&tid(m.tree)===id);
+  if(o)return 'That term is already macro '+o.name+'.';
+  const i=list.findIndex(m=>m.name===name);
+  if(i>=0)list[i]={name,tree};else list.push({name,tree});return null}
+function setFam(name,base,ctx,list=fams,ml=macros){
+  if(!NAMEOK(name))return 'Names are single capital letters other than S and K.';
+  if(ml.some(m=>m.name===name))return name+' is already a macro.';
+  if(isL(ctx)||holeCount(ctx)<1)return 'The context needs at least one # and at least one other symbol, e.g. S#(K#).';
+  const f={name,base,ctx,cache:[]},i=list.findIndex(q=>q.name===name);
+  if(i>=0)list[i]=f;else list.push(f);return null}
+function defLine(q,mp,ml,fl){   // "V = SSK" or "A* = base ; ctx"; returns an error string or null
+  const m=/^([A-Z])(\*?)\s*=\s*(.+)$/.exec(q);if(!m)return 'Bad definition: '+q;
+  try{if(!m[2]){const t=parse(m[3],mp),e=setMacro(m[1],t,ml,fl);if(!e)mp.set(m[1],t);return e}
+    const[b,c]=m[3].split(';').map(x=>x.trim());
+    if(!c)return m[1]+'* needs an explicit context: '+m[1]+'* = base ; ctx  (# marks where '+m[1]+'ₙ goes).';
+    const e=setFam(m[1],parse(b,mp),parse(c,mp),fl,ml);if(!e)mp.fam.set(m[1],fl.find(f=>f.name===m[1]));return e}
+  catch(x){return x.message}}
+const SUB='₀₁₂₃₄₅₆₇₈₉';
+function drawPanel(){
+  const Lst=$('mlist');Lst.textContent='';
+  const add=(label,tree,skipName,extra,onx)=>{const d=el('div','mrow'),t=el('div','t');skip=skipName;
+    const e=render(tree,'',true,null);skip=null;t.style.setProperty('--H',e._h||0);t.append(e);
+    if(extra)t.append(el('div','hint',extra));
+    const x=el('button','','✕');x.title='Remove';x.onclick=onx;d.append(el('b','',label),t,x);Lst.append(d)};
+  macros.forEach(m=>add(m.name+' =',m.tree,m.name,null,()=>{macros=macros.filter(q=>q!==m);refreshMacros()}));
+  fams.forEach(f=>add(f.name+'₀ =',f.base,f.name,f.name+'ₙ₊₁ = '+str(f.ctx).replace(/#/g,f.name+'ₙ'),()=>{fams=fams.filter(q=>q!==f);refreshMacros()}));
+  $('mtxt').value=macros.map(m=>m.name+' = '+str(m.tree)).concat(fams.map(f=>f.name+'* = '+str(f.base)+' ; '+str(f.ctx))).join('\n')}
+function refreshMacros(){
+  mmap=newMap();macros.forEach(m=>mmap.set(m.name,m.tree));fams.forEach(f=>mmap.fam.set(f.name,f));byId=new Map();
+  for(const m of macros){const id=tid(m.tree);if(!byId.has(id))byId.set(id,m.name)}
+  const y=window.scrollY;hist.textContent='';els=[];rows.forEach((_,i)=>drawRow(i));window.scrollTo(0,y);drawPanel()}
+$('madd').onclick=()=>{const e=defLine($('mdef').value.trim(),mmap,macros,fams);
+  if(e)return status(e,true);$('mdef').value='';refreshMacros()};
+$('mdef').addEventListener('keydown',e=>{if(e.key==='Enter')$('madd').click()});
+$('mapply').onclick=()=>{const ml=[],fl=[],mp=newMap();
+  for(const ln of $('mtxt').value.split('\n')){const q=ln.trim();if(!q||q.startsWith('//'))continue;
+    const e=defLine(q,mp,ml,fl);if(e)return status(e,true)}
+  macros=ml;fams=fl;refreshMacros()};
+$('fold').onchange=e=>{fold=e.target.checked;refreshMacros()};
+// right-click menu: add a box's subterm as a macro, or remove a macro
+const menu=el('div','menu');menu.hidden=true;document.body.append(menu);
+const hideMenu=()=>{menu.hidden=true};
+document.addEventListener('click',e=>{if(!menu.contains(e.target))hideMenu()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')hideMenu()});
+function showMenu(e,build){e.preventDefault();menu.textContent='';build(menu);menu.hidden=false;
+  menu.style.left=Math.max(0,Math.min(e.clientX,innerWidth-270))+'px';menu.style.top=Math.max(0,Math.min(e.clientY,innerHeight-140))+'px'}
+function loadText(txt){hideMenu();$('inp').value=txt;load();window.scrollTo(0,0)}
+const analyzeText=txt=>{const b=el('button','','Analyze this term');b.onclick=()=>loadText(txt);return b};
+const analyzeBtn=sub=>{const b=el('button','','Analyze this term');
+  b.onclick=()=>{if(size(sub)>200000)return status('Term too large to reload.',true);loadText(strFold(sub))};return b};
+hist.addEventListener('contextmenu',e=>{
+  const mc=e.target.closest('.mac'),b=e.target.closest('.box'),big=e.target.closest('.big');
+  if(big)return showMenu(e,m=>m.append(analyzeBtn(rows[els.indexOf(big.closest('.row'))].t)));
+  if(mc)return showMenu(e,m=>{const n=mc.dataset.name,fam=mc.dataset.sub!==undefined;
+    m.append(el('div','',mc.title.slice(0,90)));
+    const x=el('button','',(fam?'Remove family ':'Remove macro ')+n);
+    x.onclick=()=>{if(fam)fams=fams.filter(q=>q.name!==n);else macros=macros.filter(q=>q.name!==n);hideMenu();refreshMacros()};m.append(x,analyzeText(fam?n+'_'+mc.dataset.sub:n))});
+  if(!b)return;
+  const i=els.indexOf(b.closest('.row')),sub=get(rows[i].t,b.dataset.bp);
+  showMenu(e,m=>{m.append(el('div','',strCap(sub,80)));
+    const inp=el('input');inp.maxLength=1;inp.value=nextName();
+    const go=()=>{const er=setMacro(inp.value.toUpperCase(),sub);hideMenu();if(er)status(er,true);else refreshMacros()};
+    const ok=el('button','','Add as macro');ok.onclick=go;inp.onkeydown=ev=>{if(ev.key==='Enter')go()};
+    const fb=el('button','','Create inductive family');
+    fb.onclick=()=>{hideMenu();if(size(sub)>5000)return status('Term too large for a family base.',true);
+      const d=$('mdef');d.value=(inp.value.toUpperCase()||'A')+'* = '+str(sub)+' ; ';d.focus();d.setSelectionRange(d.value.length,d.value.length)};
+    m.append(inp,ok,fb,analyzeBtn(sub));setTimeout(()=>{inp.focus();inp.select()},0)})});
+$('helpb').onclick=()=>$('help').showModal();$('helpx').onclick=()=>$('help').close();
+$('help').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.close()});
+drawPanel();
+load();
+</script></body></html>
